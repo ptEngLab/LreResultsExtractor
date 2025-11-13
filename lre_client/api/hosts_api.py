@@ -1,14 +1,14 @@
 from lre_client.api.base_api import LREBaseAPI
 from lre_client.api.exceptions import LREAPIError
 from lre_client.utils.logger import get_logger
-
+from lre_client.api.endpoints import HOSTS_BASE
 log = get_logger(__name__)
 
 
 class LREHostsAPI:
     """Provides access to the LRE Hosts Management API."""
 
-    BASE_PATH = "LoadTest/rest/domains/{domain}/projects/{project}/hosts"
+
 
     def __init__(self, base_api: LREBaseAPI):
         self.api = base_api
@@ -16,7 +16,7 @@ class LREHostsAPI:
 
     def _path(self, suffix: str = "") -> str:
         """Build domain/project-scoped endpoint path."""
-        return self.BASE_PATH.format(
+        return HOSTS_BASE.format(
             domain=self.settings.lre_domain,
             project=self.settings.lre_project,
         ) + suffix

@@ -1,5 +1,6 @@
 from lre_client.utils.logger import get_logger
 from lre_client.api.exceptions import LREAuthenticationError
+from lre_client.api.endpoints import AUTHENTICATION_POINT, WEB_LOGIN, LOGOUT
 
 log = get_logger(__name__)
 
@@ -7,9 +8,7 @@ log = get_logger(__name__)
 class LREAuthenticator:
     """Handles login/logout for LoadRunner Enterprise using client credentials and project context."""
 
-    AUTH_ENDPOINT = "LoadTest/rest/authentication-point/authenticate"
-    WEB_LOGIN_ENDPOINT = "LoadTest/rest-pcweb/login/LoginToProject"
-    LOGOUT_ENDPOINT = "LoadTest/rest/authentication-point/logout"
+
 
     def __init__(self, api):
         self.api = api
@@ -26,7 +25,7 @@ class LREAuthenticator:
             return
 
         log.debug("Logging into LRE using client credentials...")
-        url = self.api.build_url(self.AUTH_ENDPOINT)
+        url = self.api.build_url(AUTHENTICATION_POINT)
 
         payload = {
             "ClientIdKey": self.settings.lre_client_id,
@@ -50,7 +49,7 @@ class LREAuthenticator:
             log.debug("Already logged into project; skipping.")
             return
 
-        url = self.api.build_url(self.WEB_LOGIN_ENDPOINT)
+        url = self.api.build_url(WEB_LOGIN)
         params = {
             "domain": self.settings.lre_domain,
             "project": self.settings.lre_project,
@@ -72,7 +71,7 @@ class LREAuthenticator:
             return
 
         log.debug("Logging out from LRE...")
-        url = self.api.build_url(self.LOGOUT_ENDPOINT)
+        url = self.api.build_url(LOGOUT)
         try:
             self.executor.execute("GET", url)
             log.debug("Successfully logged out from LRE.")
