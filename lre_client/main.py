@@ -13,6 +13,10 @@ def main():
             for host in hosts:
                 log.info(f"Host: {host.get('Name')} (ID: {host.get('ID')})")
 
+            run_status = lre.runs.get_run_status()
+            log.info(run_status)
+
+
     except LREAuthenticationError as auth_err:
         log.error("Authentication failed:", auth_err)
     except LREAPIError as api_err:
