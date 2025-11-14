@@ -1,14 +1,18 @@
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from lre_client.config.settings import create_ssl_context
+from lre_client.config import get_settings, get_ssl_verify_setting
+
 
 class HttpSessionFactory:
+    """Factory for creating configured HTTP sessions."""
+
     @staticmethod
-    def create(settings):
+    def create(settings=None):
+        settings = settings or get_settings()
         session = requests.Session()
 
-        # Retry config
+        # Retry configuration
         retry = Retry(
             total=settings.lre_max_retries,
             status_forcelist=[429, 500, 502, 503, 504],
@@ -21,12 +25,8 @@ class HttpSessionFactory:
         session.mount("http://", adapter)
         session.mount("https://", adapter)
 
-        # SSL setup
-        if not settings.lre_verify_ssl:
-            session.verify = False
-        else:
-            ssl_context = create_ssl_context(settings)
-            session.verify = str(settings.lre_ca_cert_path) if ssl_context else True
+        # SSL configuration
+        session.verify = get_ssl_verify_setting(settings)
 
         # Headers
         session.headers.update({
@@ -34,4 +34,5 @@ class HttpSessionFactory:
             "Accept": "application/json",
             "User-Agent": settings.lre_user_agent,
         })
+
         return session
