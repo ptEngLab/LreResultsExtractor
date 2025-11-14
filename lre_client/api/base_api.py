@@ -3,7 +3,6 @@ from lre_client.http_layer.session_factory import HttpSessionFactory
 from lre_client.http_layer.request_executor import LRERequestExecutor
 from lre_client.config import get_settings
 from lre_client.api.auth import LREAuthenticator
-from lre_client.api.exceptions import LREAuthenticationError
 from lre_client.utils.logger import get_logger
 
 log = get_logger(__name__)
@@ -25,12 +24,8 @@ class LREBaseAPI:
         log.debug(f"Built URL: {url}")
         return url
 
-
     def request(self, method: str, endpoint: str, **kwargs):
-        """Generic API request method with authentication enforcement."""
-        if not self.auth.authenticated and not endpoint.startswith("LoadTest/rest/authentication-point/"):
-            raise LREAuthenticationError("Client not authenticated. Call login_with_client_credentials() first.")
-
+        """Generic API request method - authentication is handled at context level."""
         url = self.build_url(endpoint)
         log.debug(f"Preparing {method} request for endpoint: {endpoint}")
 
@@ -43,10 +38,17 @@ class LREBaseAPI:
             raise
 
     # Convenience methods
-    def get(self, endpoint, **kwargs): return self.request("GET", endpoint, **kwargs)
-    def post(self, endpoint, **kwargs): return self.request("POST", endpoint, **kwargs)
-    def put(self, endpoint, **kwargs): return self.request("PUT", endpoint, **kwargs)
-    def delete(self, endpoint, **kwargs): return self.request("DELETE", endpoint, **kwargs)
+    def get(self, endpoint, **kwargs):
+        return self.request("GET", endpoint, **kwargs)
+
+    def post(self, endpoint, **kwargs):
+        return self.request("POST", endpoint, **kwargs)
+
+    def put(self, endpoint, **kwargs):
+        return self.request("PUT", endpoint, **kwargs)
+
+    def delete(self, endpoint, **kwargs):
+        return self.request("DELETE", endpoint, **kwargs)
 
     def close(self) -> None:
         log.debug("Closing HTTP session...")

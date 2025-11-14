@@ -30,11 +30,21 @@ class LREClient(LREBaseAPI):
         self._ensure_authenticated()
         return super().request(method, endpoint, **kwargs)
 
+    def __enter__(self):
+        """Context manager entry - authenticate immediately."""
+        log.debug("Entering LREClient context manager")
+        # Auto-login when entering context
+        self._ensure_authenticated()
+        return self
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Logout automatically on context exit."""
+        log.debug("Exiting LREClient context manager")
         try:
             if self.auth.authenticated:
                 log.debug("Automatically logging out...")
                 self.auth.logout()
+        except Exception as e:
+            log.warning(f"Error during logout: {e}")
         finally:
             self.close()
