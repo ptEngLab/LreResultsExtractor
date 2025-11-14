@@ -42,7 +42,7 @@ def process_results(store: ResultsStore) -> None:
 
     # Access the stored run status
     if store.run_status:
-        status = store.run_status.get('status')
+        status = store.run_status.get('State')
         log.info(f"Current run status: {status}")
 
         # You can add more processing logic here
