@@ -13,3 +13,8 @@ HOSTS_BASE = "LoadTest/rest/domains/{domain}/projects/{project}/hosts"
 # Runs API endpoints
 RUN_STATUS = "loadtest/rest-pcWeb/runs/get"
 
+
+# Results endpoints
+RUN_RESULTS_LIST = "LoadTest/rest/domains/{domain}/projects/{project}/Runs/{run_id}/Results"
+RESULT_DATA_DOWNLOAD = "LoadTest/rest/domains/{domain}/projects/{project}/Runs/{run_id}/Results/{result_id}/data"
+

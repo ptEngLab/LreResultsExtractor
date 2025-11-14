@@ -3,6 +3,7 @@ from lre_client.api.hosts_api import LREHostsAPI
 from lre_client.api.runs_api import LRERunsAPI
 from lre_client.utils.logger import get_logger
 from lre_client.api.exceptions import LREAuthenticationError
+from lre_client.api.results_api import LREResultsAPI
 
 log = get_logger(__name__)
 
@@ -14,6 +15,7 @@ class LREClient(LREBaseAPI):
         # Initialize API modules
         self.hosts = LREHostsAPI(self)
         self.runs = LRERunsAPI(self)
+        self.results = LREResultsAPI(self)
 
     def _ensure_authenticated(self):
         """Authenticate automatically if not already authenticated."""
