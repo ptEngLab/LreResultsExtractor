@@ -6,7 +6,8 @@ from .constants import ENV_FILE_PATH
 
 
 class BaseLRESettings(BaseSettings):
-    """Base settings model focusing only on configuration definition and validation."""
+    """Configuration model for LRE settings."""
+
     model_config = SettingsConfigDict(
         env_file=ENV_FILE_PATH,
         env_file_encoding="utf-8",
@@ -22,19 +23,19 @@ class BaseLRESettings(BaseSettings):
     lre_project: str = Field(..., description="LRE project name")
     lre_run_id: int = Field(0, description="LRE Run ID")
 
-    # SSL/TLS Settings (CA certificates only)
-    lre_ca_cert_path: Optional[Path] = Field(None, description="Path to custom CA certificate")
+    # SSL/TLS Settings
+    lre_ca_cert_path: Optional[Path] = Field(None, description="Path to CA certificate")
     lre_verify_ssl: bool = Field(True, description="Verify SSL certificates")
 
     # API Settings
-    lre_timeout: int = Field(30, ge=1, le=300, description="Request timeout in seconds")
-    lre_max_retries: int = Field(3, ge=0, le=10, description="Maximum retry attempts")
+    lre_timeout: int = Field(30, ge=1, le=300, description="Timeout (sec)")
+    lre_max_retries: int = Field(3, ge=0, le=10, description="Max retry attempts")
     lre_retry_backoff: float = Field(1.0, ge=0.1, le=10.0, description="Retry backoff factor")
 
-    # HTTP Settings
-    lre_user_agent: str = Field("LRE-Python-Client/1.0.0", description="HTTP User-Agent header")
+    # HTTP
+    lre_user_agent: str = Field("LRE-Python-Client/1.0.0", description="HTTP User-Agent")
 
     @property
     def base_url(self) -> str:
-        """Get normalized base URL."""
-        return self.lre_server.rstrip('/')
+        """Return normalized base URL."""
+        return self.lre_server.rstrip("/")

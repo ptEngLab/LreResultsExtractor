@@ -11,13 +11,6 @@ def main():
 
     try:
         with LREClient() as lre:
-            # Get hosts and store them
-            hosts = lre.hosts.list_hosts()
-            results_store.update_hosts(hosts)
-
-            # Log hosts information
-            for host in results_store.hosts:
-                log.info(f"Host: {host.get('Name')} (ID: {host.get('ID')})")
 
             # Get run status and store it
             run_status = lre.runs.get_run_status()
@@ -25,6 +18,9 @@ def main():
 
             # Log the status summary
             log.info(results_store.get_run_status_summary())
+
+            results_info = lre.results.get_run_results()
+            results_store.update_run_results(results_info)
 
             # Now you can pass results_store to other functions/classes
             process_results(results_store)

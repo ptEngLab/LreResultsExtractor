@@ -1,5 +1,6 @@
+from importlib import resources
 from pathlib import Path
 
-# Single source of truth for project root
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-ENV_FILE_PATH = PROJECT_ROOT / "resources/.env"
+PACKAGE_ROOT: Path = resources.files("lre_client")
+PROJECT_ROOT: Path = PACKAGE_ROOT.parent
+ENV_FILE_PATH: Path = PROJECT_ROOT / "resources" / ".env"

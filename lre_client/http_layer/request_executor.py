@@ -1,4 +1,4 @@
-import logging
+from lre_client.utils.logger import get_logger
 import requests
 from lre_client.api.exceptions import (
     LREConnectionError,
@@ -6,7 +6,7 @@ from lre_client.api.exceptions import (
     LREAPIError,
 )
 
-logger = logging.getLogger(__name__)
+
 
 
 class LRERequestExecutor:
@@ -15,7 +15,7 @@ class LRERequestExecutor:
     def __init__(self, session: requests.Session, settings):
         self.session = session
         self.settings = settings
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger(__name__)
 
     def execute(
             self,

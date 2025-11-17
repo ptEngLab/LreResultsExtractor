@@ -37,7 +37,6 @@ class LRERunsAPI:
             "PageSize": 0
         }
 
-        log.debug(f"Fetching run with payload: {payload}")
         response = self.api.post(RUN_STATUS, json=payload)
         if response.status_code != 200:
             raise LREAPIError(f"Failed to fetch run: {response.text}")

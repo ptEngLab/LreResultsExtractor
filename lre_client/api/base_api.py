@@ -21,7 +21,6 @@ class LREBaseAPI:
 
     def build_url(self, endpoint: str) -> str:
         url = urljoin(self.settings.base_url + "/", endpoint.lstrip("/"))
-        log.debug(f"Built URL: {url}")
         return url
 
     def request(self, method: str, endpoint: str, **kwargs):

@@ -4,6 +4,7 @@ from lre_client.utils.logger import get_logger
 
 log = get_logger(__name__)
 
+
 @dataclass
 class ResultsStore:
     """Stores and manages LRE results data."""
@@ -11,6 +12,7 @@ class ResultsStore:
     run_status: Optional[Dict[str, Any]] = None
     hosts: list = field(default_factory=list)
     test_results: list = field(default_factory=list)
+    results_info: Optional[Dict[str, Any]] = None
 
     def update_run_status(self, run_status: Dict[str, Any]) -> None:
         """Update run status and log the change."""
@@ -30,6 +32,9 @@ class ResultsStore:
         status = self.run_status.get('State', 'Unknown')
         run_id = self.run_status.get('Id', 'Unknown')
         return f"Run {run_id} status: {status}"
+
+    def update_run_results(self, results_info):
+        self.results_info = results_info
 
     def clear(self) -> None:
         """Clear all stored results."""
