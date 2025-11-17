@@ -2,47 +2,65 @@ from dataclasses import dataclass
 from typing import Optional, List, Dict, Any
 
 
+def normalize_result_type(value: str) -> str:
+    """Normalize API result type strings to canonical types."""
+    if not value:
+        return ""
+    value = value.strip().upper()
+    mapping = {
+        "ANALYZED RESULT": "ANALYZED",
+        "RAW RESULTS": "RAW",
+        "HTML REPORT": "HTML",
+        "RICH REPORT": "RICH",
+        "ERROR MESSAGES": "ERROR",
+        "OUTPUT LOG": "LOG",
+    }
+    return mapping.get(value, value)
+
+
 @dataclass
 class RunResult:
-    """Represents a test result within a run based on the actual API response."""
+    """Represents a single test result in a run."""
     id: int
     name: str
-    type: str  # Changed from result_type to type to match API
+    type: str
     run_id: int
 
     @classmethod
     def from_api_response(cls, data: Dict[str, Any]) -> 'RunResult':
-        """Create RunResult from API response data."""
-        # Convert string IDs to integers
         result_id = int(data['ID']) if 'ID' in data else 0
         run_id = int(data['RunID']) if 'RunID' in data else 0
-
+        type_normalized = normalize_result_type(data.get('Type', ''))
         return cls(
             id=result_id,
             name=data.get('Name', ''),
-            type=data.get('Type', ''),
+            type=type_normalized,
             run_id=run_id
         )
 
     @property
     def is_analyzed(self) -> bool:
-        """Check if this result is an analyzed result."""
-        return self.type.upper() == "ANALYZED RESULT"
+        return self.type == "ANALYZED"
 
     @property
-    def is_raw_results(self) -> bool:
-        """Check if this result is raw results."""
-        return self.type.upper() == "RAW RESULTS"
+    def is_raw(self) -> bool:
+        return self.type == "RAW"
 
     @property
-    def is_html_report(self) -> bool:
-        """Check if this result is HTML report."""
-        return self.type.upper() == "HTML REPORT"
+    def is_html(self) -> bool:
+        return self.type == "HTML"
 
     @property
-    def is_rich_report(self) -> bool:
-        """Check if this result is rich report."""
-        return self.type.upper() == "RICH REPORT"
+    def is_rich(self) -> bool:
+        return self.type == "RICH"
+
+    @property
+    def is_error(self) -> bool:
+        return self.type == "ERROR"
+
+    @property
+    def is_log(self) -> bool:
+        return self.type == "LOG"
 
 
 @dataclass
@@ -53,58 +71,67 @@ class RunResultsCollection:
 
     @classmethod
     def from_api_response(cls, run_id: int, data: List[Dict[str, Any]]) -> 'RunResultsCollection':
-        """Create RunResultsCollection from API response data."""
         results = [RunResult.from_api_response(item) for item in data]
         return cls(run_id=run_id, results=results)
 
     @property
-    def analyzed_results(self) -> List[RunResult]:
-        """Get all analyzed results."""
-        return [result for result in self.results if result.is_analyzed]
+    def analyzed(self) -> List[RunResult]:
+        return [r for r in self.results if r.is_analyzed]
 
     @property
-    def raw_results(self) -> List[RunResult]:
-        """Get all raw results."""
-        return [result for result in self.results if result.is_raw_results]
+    def raw(self) -> List[RunResult]:
+        return [r for r in self.results if r.is_raw]
 
     @property
-    def html_reports(self) -> List[RunResult]:
-        """Get all HTML reports."""
-        return [result for result in self.results if result.is_html_report]
+    def html(self) -> List[RunResult]:
+        return [r for r in self.results if r.is_html]
 
     @property
-    def rich_reports(self) -> List[RunResult]:
-        """Get all rich reports."""
-        return [result for result in self.results if result.is_rich_report]
+    def rich(self) -> List[RunResult]:
+        return [r for r in self.results if r.is_rich]
 
     @property
-    def latest_analyzed_result(self) -> Optional[RunResult]:
-        """Get the analyzed result (should be only one per run)."""
-        analyzed = self.analyzed_results
-        return analyzed[0] if analyzed else None
+    def error(self) -> List[RunResult]:
+        return [r for r in self.results if r.is_error]
+
+    @property
+    def log(self) -> List[RunResult]:
+        return [r for r in self.results if r.is_log]
+
+    @property
+    def latest_analyzed(self) -> Optional[RunResult]:
+        return self.analyzed[0] if self.analyzed else None
+
+    @property
+    def latest_html(self) -> Optional[RunResult]:
+        return self.html[0] if self.html else None
 
     def get_analyzed_result_id(self) -> Optional[int]:
-        """Get the ID of the analyzed result."""
-        analyzed = self.latest_analyzed_result
-        return analyzed.id if analyzed else None
+        result = self.latest_analyzed
+        return result.id if result else None
+
+    def get_html_result_id(self) -> Optional[int]:
+        result = self.latest_html
+        return result.id if result else None
 
     def get_result_by_id(self, result_id: int) -> Optional[RunResult]:
-        """Get a specific result by ID."""
-        return next((result for result in self.results if result.id == result_id), None)
+        return next((r for r in self.results if r.id == result_id), None)
 
     def get_results_by_type(self, result_type: str) -> List[RunResult]:
-        """Get all results of a specific type."""
-        return [result for result in self.results if result.type.upper() == result_type.upper()]
+        type_normalized = normalize_result_type(result_type)
+        return [r for r in self.results if r.type == type_normalized]
 
     def summary(self) -> Dict[str, Any]:
-        """Get summary information about the result's collection."""
         return {
             'run_id': self.run_id,
             'total_results': len(self.results),
-            'analyzed_results_count': len(self.analyzed_results),
-            'raw_results_count': len(self.raw_results),
-            'html_reports_count': len(self.html_reports),
-            'rich_reports_count': len(self.rich_reports),
+            'analyzed_count': len(self.analyzed),
+            'raw_count': len(self.raw),
+            'html_count': len(self.html),
+            'rich_count': len(self.rich),
+            'error_count': len(self.error),
+            'log_count': len(self.log),
             'analyzed_result_id': self.get_analyzed_result_id(),
-            'available_types': list(set(result.type for result in self.results))
+            'html_result_id': self.get_html_result_id(),
+            'available_types': list({r.type for r in self.results})
         }

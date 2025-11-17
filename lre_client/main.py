@@ -20,6 +20,8 @@ def main():
             log.info(results_store.get_run_status_summary())
 
             results_info = lre.results.get_run_results()
+            log.info(f"summry {results_info.summary()}")
+            log.info(f"Result id {results_info.get_analyzed_result_id()}")
             results_store.update_run_results(results_info)
 
             # Now you can pass results_store to other functions/classes
