@@ -1,7 +1,7 @@
 import ssl
 from .constants import PROJECT_ROOT, ENV_FILE_PATH
 from .manager import SettingsManager
-from .models import BaseLRESettings
+from .settings import BaseLRESettings
 from .ssl_context import SSLContextFactory
 
 # Global settings manager
