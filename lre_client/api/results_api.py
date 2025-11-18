@@ -85,7 +85,7 @@ class LREResultsAPI:
         if output_path is None:
             output_dir = Path.cwd() / "lre_results"
             output_dir.mkdir(exist_ok=True)
-            output_path = output_dir / f"run_{run_id}_result_{result_id}.zip"
+            output_path = output_dir / f"Results_{run_id}.zip"
         else:
             output_path = Path(output_path)
             output_path.parent.mkdir(parents=True, exist_ok=True)

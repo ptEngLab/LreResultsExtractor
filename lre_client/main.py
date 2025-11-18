@@ -7,9 +7,6 @@ from lre_client.data.results_store import ResultsStore
 log = get_logger(__name__)
 
 
-
-
-
 def process_results(store: ResultsStore) -> None:
     """Example function that uses the stored results."""
     log.info("Processing stored results...")
@@ -17,13 +14,6 @@ def process_results(store: ResultsStore) -> None:
     if store.run_status:
         status = store.run_status.get('State')
         log.info(f"Current run status: {status}")
-
-        if status == 'Completed':
-            log.info("Run completed successfully!")
-        elif status == 'Running':
-            log.info("Run is still in progress...")
-
-    log.info(f"Total hosts: {len(store.hosts)}")
 
 
 def main():
@@ -39,11 +29,9 @@ def main():
             rows = summary.build_rows()
             TablePrinter.print(rows)
             lgs = summary.get_lgs_list()
-            log.info(f" LGs used {lgs}")
+            log.info(f"LGs used {lgs}")
 
-            lre.results.download_analyzed_result()
-            results_info = lre.results.get_run_results()
-            results_store.update_run_results(results_info)
+            lre.results.download_analyzed_result(extract=True)
 
             process_results(results_store)
 
