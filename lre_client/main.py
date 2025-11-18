@@ -1,30 +1,50 @@
 from lre_client.api.exceptions import LREAuthenticationError, LREAPIError
+from lre_client.utils.common_utils import RunSummary, TablePrinter
 from lre_client.utils.logger import get_logger
 from lre_client.api.client import LREClient
 from lre_client.data.results_store import ResultsStore
 
 log = get_logger(__name__)
 
+
+
+
+
+def process_results(store: ResultsStore) -> None:
+    """Example function that uses the stored results."""
+    log.info("Processing stored results...")
+
+    if store.run_status:
+        status = store.run_status.get('State')
+        log.info(f"Current run status: {status}")
+
+        if status == 'Completed':
+            log.info("Run completed successfully!")
+        elif status == 'Running':
+            log.info("Run is still in progress...")
+
+    log.info(f"Total hosts: {len(store.hosts)}")
+
+
 def main():
-    # Create a results store to hold our data
     results_store = ResultsStore()
 
     try:
         with LREClient() as lre:
 
-            # Get run status and store it
             run_status = lre.runs.get_run_status()
             results_store.update_run_status(run_status)
 
-            # Log the status summary
-            log.info(results_store.get_run_status_summary())
+            summary = RunSummary(run_status, settings=lre.settings)
+            rows = summary.build_rows()
+            TablePrinter.print(rows)
+            lgs = summary.get_lgs_list()
+            log.info(f" LGs used {lgs}")
 
+            lre.results.download_analyzed_result()
             results_info = lre.results.get_run_results()
-            log.info(f"summry {results_info.summary()}")
-            log.info(f"Result id {results_info.get_analyzed_result_id()}")
             results_store.update_run_results(results_info)
 
-            # Now you can pass results_store to other functions/classes
             process_results(results_store)
 
     except LREAuthenticationError as auth_err:
@@ -34,23 +54,6 @@ def main():
     except Exception as e:
         log.error("Unexpected error: %s", e)
 
-def process_results(store: ResultsStore) -> None:
-    """Example function that uses the stored results."""
-    log.info("Processing stored results...")
-
-    # Access the stored run status
-    if store.run_status:
-        status = store.run_status.get('State')
-        log.info(f"Current run status: {status}")
-
-        # You can add more processing logic here
-        if status == 'Completed':
-            log.info("Run completed successfully!")
-        elif status == 'Running':
-            log.info("Run is still in progress...")
-
-    # Access stored hosts
-    log.info(f"Total hosts: {len(store.hosts)}")
 
 if __name__ == "__main__":
     main()

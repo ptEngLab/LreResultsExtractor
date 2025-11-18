@@ -17,7 +17,7 @@ class ResultsStore:
     def update_run_status(self, run_status: Dict[str, Any]) -> None:
         """Update run status and log the change."""
         self.run_status = run_status
-        log.info(f"Run status updated: {run_status.get('State', 'Unknown')}")
+        log.debug(f"Run status updated: {run_status.get('State', 'Unknown')}")
 
     def update_hosts(self, hosts: list) -> None:
         """Update hosts list."""
@@ -31,7 +31,7 @@ class ResultsStore:
 
         status = self.run_status.get('State', 'Unknown')
         run_id = self.run_status.get('Id', 'Unknown')
-        return f"Run {run_id} status: {status}"
+        return f"Run id {run_id} status: {status}"
 
     def update_run_results(self, results_info):
         self.results_info = results_info
