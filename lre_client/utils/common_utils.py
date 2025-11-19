@@ -114,5 +114,4 @@ class TablePrinter:
             print("|" + "|".join(padded_cells) + "|")
         print(border)
 
-# -------------------- USAGE EXAMPLE --------------------
 
