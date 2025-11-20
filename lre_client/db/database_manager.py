@@ -1,103 +1,100 @@
-import os
 import sqlite3
-from pathlib import Path
+import pandas as pd
+from typing import Optional, Dict, Any, Iterator
 from contextlib import contextmanager
-from typing import Iterator, Dict, Any, Optional
 from lre_client.utils.logger import get_logger
 
 log = get_logger(__name__)
 
 
-def optimize_connection(conn: sqlite3.Connection):
-    """Apply safe performance optimizations for large read-only queries."""
+def _optimize_connection(conn: sqlite3.Connection):
+    """Apply performance optimizations for large read-only queries."""
     pragma_list = [
-        ("cache_size", "-100000"),      # ~100MB
-        ("page_size", "4096"),
-        ("mmap_size", "268435456"),     # 256MB
-        ("temp_store", "MEMORY"),
-        ("optimize", None),
+        ("journal_mode", "MEMORY"),    # Reduce I/O for read-heavy workloads
+        ("cache_size", "-100000"),     # ~100MB cache
+        ("page_size", "4096"),         # Optimal page size
+        ("mmap_size", "268435456"),    # 256MB memory mapping
+        ("temp_store", "MEMORY"),      # Store temp tables in memory
+        ("synchronous", "NORMAL"),     # Balance safety vs performance
+        ("locking_mode", "NORMAL"),
     ]
 
-    for pragma, value in pragma_list:
-        if value is None:
-            conn.execute(f"PRAGMA {pragma};")
-        else:
+    try:
+        for pragma, value in pragma_list:
             conn.execute(f"PRAGMA {pragma}={value};")
 
+        # Run optimization
+        conn.execute("PRAGMA optimize;")
+        log.debug("Applied SQLite performance optimizations")
 
-class DatabaseManager:
-    def __init__(self):
-        self._db_path: Optional[Path] = None
+    except sqlite3.Error as e:
+        log.warning(f"SQLite optimizations partially failed: {e}")
 
-    def connect(self, db_file: str) -> str:
-        """Validate database file exists and is accessible"""
-        db_path = Path(db_file).resolve()
 
-        if not db_path.exists():
-            raise FileNotFoundError(f"SQLite DB not found: {db_path}")
+class SQLiteDBManager:
+    """
+    High-performance SQLite database manager optimized for large read-only analytics.
+    """
 
-        if not os.access(db_path, os.R_OK):
-            raise PermissionError(f"No read permission for database: {db_path}")
-
-        self._db_path = db_path
-        log.debug(f"Database file validated: {db_path}")
-        return f"Database file validated: {db_path}"
+    def __init__(self, db_path: str, timeout: int = 30, default_chunk_size: int = 50_000):
+        self.db_path = db_path
+        self.timeout = timeout
+        self.default_chunk_size = default_chunk_size
+        self._conn: Optional[sqlite3.Connection] = None
 
     @contextmanager
-    def _get_connection(self) -> Iterator[sqlite3.Connection]:
-        """Context manager for read-only database connections."""
-        if not self._db_path:
-            raise ConnectionError("No database file specified. Call connect() first.")
-
-        # Open read-only
-        conn = sqlite3.connect(f"file:{self._db_path}?mode=ro", uri=True)
-        conn.row_factory = sqlite3.Row
-
+    def connection(self):
+        """Context manager for database connection with optimizations."""
+        conn = None
         try:
-            optimize_connection(conn)
+            conn = sqlite3.connect(self.db_path, timeout=self.timeout)
+            conn.row_factory = sqlite3.Row
+            _optimize_connection(conn)
+            log.debug("Database connection established and optimized")
             yield conn
+        except sqlite3.Error as e:
+            log.error(f"Database connection failed: {e}")
+            raise
         finally:
-            conn.close()
+            if conn:
+                conn.close()
+                log.debug("Database connection closed")
 
-    def execute_query(self, sql: str, params: tuple = ()) -> Iterator[Dict[str, Any]]:
+    def query(
+            self,
+            sql: str,
+            params: Optional[Dict[str, Any]] = None,
+            chunk_size: Optional[int] = None
+    ) -> Iterator[pd.DataFrame]:
         """
-        Execute query and stream results one-by-one.
-        Constant memory footprint regardless of result set size.
+        Unified query method that always uses chunked processing.
         """
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(sql, params)
+        actual_chunk_size = chunk_size if chunk_size is not None else self.default_chunk_size
 
-            while True:
-                row = cursor.fetchone()
-                if row is None:
-                    break
-                yield dict(row)
+        with self.connection() as conn:
+            log.debug(f"Executing query with chunk size {actual_chunk_size}")
+            yield from pd.read_sql_query(sql, conn, params=params, chunksize=actual_chunk_size)
 
-    # Helper methods using streaming internally
-    def get_first(self, sql: str, params: tuple = ()) -> Optional[Dict[str, Any]]:
-        """Get only the first result from a query."""
-        for row in self.execute_query(sql, params):
-            return row
-        return None
+    def query_single(
+            self,
+            sql: str,
+            params: Optional[Dict[str, Any]] = None
+    ) -> pd.DataFrame:
+        """
+        Convenience method for when you want a single DataFrame.
+        Still uses chunked processing internally but returns combined result.
+        """
+        log.debug(f"Executing single-result query: {sql[:100]}...")
+        chunks = self.query(sql, params, chunk_size=None)
+        result_chunks = []
 
-    def get_all(self, sql: str, params: tuple = ()) -> list[Dict[str, Any]]:
-        """Get all results (only for small result sets)."""
-        return list(self.execute_query(sql, params))
+        for chunk in chunks:
+            result_chunks.append(chunk)
 
-    def get_count(self, sql: str, params: tuple = ()) -> int:
-        """Execute COUNT query and return integer result."""
-        result = self.get_first(sql, params)
-        return result['count'] if result else 0
-
-    # Metadata helpers
-    def get_table_info(self, table_name: str) -> list[Dict[str, Any]]:
-        return self.get_all(f"PRAGMA table_info({table_name})")
-
-    def get_table_names(self) -> list[str]:
-        return [row['name'] for row in self.execute_query(
-            "SELECT name FROM sqlite_master WHERE type='table'"
-        )]
-
-    def estimate_row_count(self, table_name: str) -> int:
-        return self.get_count(f"SELECT COUNT(*) AS count FROM {table_name}")
+        if result_chunks:
+            result = pd.concat(result_chunks, ignore_index=True)
+            log.debug(f"Single query returned {len(result)} rows")
+            return result
+        else:
+            log.debug("Single query returned empty result")
+            return pd.DataFrame()
